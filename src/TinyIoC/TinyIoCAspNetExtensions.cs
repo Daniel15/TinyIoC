@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Web;
 
 namespace TinyIoC
 {
     public class HttpContextLifetimeProvider : TinyIoCContainer.ITinyIoCObjectLifetimeProvider
     {
-        private readonly string _KeyName = String.Format("TinyIoC.HttpContext.{0}", Guid.NewGuid());
+        private const string PREFIX = "TinyIoC.HttpContext.";
+        private readonly string _KeyName = PREFIX + Guid.NewGuid();
 
         public object GetObject()
         {
@@ -28,6 +27,20 @@ namespace TinyIoC
                 item.Dispose();
 
             SetObject(null);
+        }
+
+        public static void DisposeAll()
+        {
+            var items = HttpContext.Current.Items;
+            var disposableItems = items.Keys.OfType<string>()
+                .Where(key => key.StartsWith(PREFIX))
+                .Select(key => items[key])
+                .Where(item => item is IDisposable);
+
+            foreach (var item in disposableItems)
+            {
+                ((IDisposable)item).Dispose();
+            }
         }
     }
 
